@@ -35,7 +35,7 @@ const route = useRoute()
       <div class="logo-group" @click="router.push('/')">
         <h1 class="logo">
           <span class="logo-icon">⚔️</span>
-          <span class="logo-text">D3 Gear Analyzer</span>
+          <span class="logo-text">DYERB</span>
         </h1>
       </div>
     </div>

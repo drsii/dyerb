@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.svg'],
       manifest: {
-        name: 'D3 Gear Analyzer',
-        short_name: 'D3 Gear',
-        description: 'Analyze Diablo III gear and find upgrades',
+        name: 'DYERB',
+        short_name: 'DYERB',
+        description: 'Do You Even Rift Bro? - Diablo III Gear Analyzer',
         theme_color: '#1a1a2e',
         background_color: '#0d0d0f',
         display: 'standalone',

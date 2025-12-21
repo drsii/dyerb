@@ -22,7 +22,7 @@ const router = useRouter()
     <div class="sidebar-content">
       <!-- Logo Section -->
       <div class="logo-section" @click="router.push('/')">
-        <img src="/dyerb.svg" alt="D3 Gear Analyzer" class="logo-image" />
+        <img src="/dyerb.svg" alt="DYERB" class="logo-image" />
       </div>
 
       <!-- Account Section -->

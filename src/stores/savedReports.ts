@@ -22,7 +22,7 @@ export interface SavedReport {
   savedAt: number
 }
 
-const STORAGE_KEY = 'd3-saved-reports'
+const STORAGE_KEY = 'dyerb-saved-reports'
 
 export const useSavedReportsStore = defineStore('savedReports', () => {
   // State

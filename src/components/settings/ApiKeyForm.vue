@@ -88,6 +88,24 @@ function handleClear() {
     }
   }
 }
+
+function handleDestroyAllData() {
+  if (confirm('⚠️ This will permanently delete ALL local data including:\n\n• API keys and credentials\n• Saved reports\n• Cached data\n• Service worker cache\n\nThis cannot be undone. Continue?')) {
+    settings.destroyAllData()
+    formData.value = {
+      clientId: '',
+      clientSecret: '',
+      region: 'us',
+      battletag: '',
+      proxyUrl: settings.proxyUrl,
+      claudeApiKey: ''
+    }
+    saveMessage.value = 'All data destroyed successfully'
+    setTimeout(() => {
+      saveMessage.value = ''
+    }, 3000)
+  }
+}
 </script>
 
 <template>
@@ -213,7 +231,15 @@ function handleClear() {
         {{ isSaving ? 'Saving...' : 'Save Settings' }}
       </button>
       <button type="button" class="btn btn-secondary" @click="handleClear">
-        Clear All
+        Clear Settings
+      </button>
+    </div>
+
+    <div class="danger-zone">
+      <h3>Danger Zone</h3>
+      <p>Permanently delete all local data including API keys, saved reports, and cached data.</p>
+      <button type="button" class="btn btn-danger" @click="handleDestroyAllData">
+        Destroy All Data
       </button>
     </div>
   </form>
@@ -319,5 +345,37 @@ function handleClear() {
 .section-description {
   font-size: 0.8125rem;
   color: var(--text-muted);
+}
+
+.danger-zone {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--accent-red);
+  border-radius: 8px;
+  background: rgba(192, 57, 43, 0.05);
+}
+
+.danger-zone h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-red);
+  margin-bottom: 0.5rem;
+}
+
+.danger-zone p {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.btn-danger {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #a93226;
+  border-color: #a93226;
 }
 </style>

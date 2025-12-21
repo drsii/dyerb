@@ -1,7 +1,7 @@
-# Cloudflare Worker configuration for D3 Gear Analyzer OAuth Proxy
+# Cloudflare Worker configuration for DYERB OAuth Proxy
 # See: https://developers.cloudflare.com/workers/wrangler/configuration/
 
-name = "d3-gear-proxy"
+name = "dyerb-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 

@@ -12,7 +12,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Region } from '@/types'
 
-const STORAGE_KEY = 'd3-gear-settings'
+const STORAGE_KEY = 'dyerb-settings'
 
 interface StoredSettings {
   clientId: string
@@ -106,6 +106,42 @@ export const useSettingsStore = defineStore('settings', () => {
     localStorage.removeItem(STORAGE_KEY)
   }
 
+  function destroyAllData() {
+    // Clear all localStorage
+    localStorage.clear()
+
+    // Clear all sessionStorage
+    sessionStorage.clear()
+
+    // Clear IndexedDB databases
+    if ('indexedDB' in window) {
+      indexedDB.databases().then((databases) => {
+        databases.forEach((db) => {
+          if (db.name) {
+            indexedDB.deleteDatabase(db.name)
+          }
+        })
+      })
+    }
+
+    // Clear service worker caches
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => {
+          caches.delete(name)
+        })
+      })
+    }
+
+    // Reset store state
+    clientId.value = ''
+    clientSecret.value = ''
+    region.value = 'us'
+    battletag.value = ''
+    proxyUrl.value = 'https://dyerb-proxy.YOUR-SUBDOMAIN.workers.dev'
+    claudeApiKey.value = ''
+  }
+
   // Computed for Claude
   const isClaudeConfigured = computed(() => {
     return !!claudeApiKey.value
@@ -139,6 +175,7 @@ export const useSettingsStore = defineStore('settings', () => {
     saveToStorage,
     updateSettings,
     clearSettings,
+    destroyAllData,
     toggleSidebar
   }
 })

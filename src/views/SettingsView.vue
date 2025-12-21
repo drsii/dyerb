@@ -71,7 +71,7 @@ import ApiKeyForm from '@/components/settings/ApiKeyForm.vue'
                   Cloudflare Worker and enter the URL above.
                 </p>
                 <pre class="code-block"><code># Navigate to workers folder
-cd d3-gear-analyzer/workers
+cd dyerb/workers
 
 # Install wrangler if needed
 npm install -g wrangler
@@ -82,7 +82,7 @@ wrangler login
 # Deploy
 npx wrangler deploy</code></pre>
                 <p class="note">
-                  After deploy, you'll get a URL like: <code>https://d3-proxy.&lt;your-account&gt;.workers.dev</code>
+                  After deploy, you'll get a URL like: <code>https://dyerb-proxy.&lt;your-account&gt;.workers.dev</code>
                 </p>
               </div>
             </div>
@@ -107,7 +107,7 @@ npx wrangler deploy</code></pre>
         </div>
         <div class="card">
           <p class="about-text">
-            D3 Gear Analyzer fetches your Diablo III character gear via the
+            DYERB (Do You Even Rift Bro?) fetches your Diablo III character gear via the
             Battle.net API and helps you find upgrade opportunities by comparing
             your equipped items against the complete item database.
           </p>
