@@ -1,0 +1,18 @@
+# Cloudflare Worker configuration for D3 Gear Analyzer OAuth Proxy
+# See: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "d3-gear-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Uncomment and set your account_id if needed
+# account_id = "your-account-id"
+
+# Production deployment
+# [env.production]
+# routes = [{ pattern = "d3-proxy.yourdomain.com/*", zone_name = "yourdomain.com" }]
+
+# Development settings
+[dev]
+port = 8787
+local_protocol = "http"
