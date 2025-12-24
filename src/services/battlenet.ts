@@ -81,6 +81,12 @@ const slotNames: Record<string, string> = {
   offHand: 'Off Hand'
 }
 
+// Map API slot names to internal slot keys
+// The Blizzard API uses 'bracers' but we use 'wrists' internally
+const slotKeyMap: Record<string, string> = {
+  bracers: 'wrists'
+}
+
 class BattleNetService {
   /**
    * Make an authenticated API request via the proxy
@@ -90,8 +96,9 @@ class BattleNetService {
     const auth = useAuthStore()
 
     const token = await auth.getValidToken()
+    const baseUrl = settings.proxyUrl.replace(/\/+$/, '')
 
-    const response = await fetch(`${settings.proxyUrl}/api/proxy`, {
+    const response = await fetch(`${baseUrl}/api/proxy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -257,10 +264,13 @@ class BattleNetService {
     const items: Record<string, Item> = {}
     const legendaryGems: Gem[] = []
 
-    for (const [slot, itemData] of Object.entries(data)) {
+    for (const [apiSlot, itemData] of Object.entries(data)) {
       if (!itemData || typeof itemData !== 'object' || !itemData.name) {
         continue
       }
+
+      // Map API slot name to internal slot key (e.g., 'bracers' -> 'wrists')
+      const slot = slotKeyMap[apiSlot] || apiSlot
 
       // Determine quality
       let quality: ItemQuality = 'common'

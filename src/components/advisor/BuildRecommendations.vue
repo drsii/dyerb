@@ -4,7 +4,7 @@
  * @description Main build advisor display with skills, gear, and stats
  *
  * @author drsii
- * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20250514)
+ * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20251101)
  * @license MIT
  * @copyright (c) 2025 drsii. All rights reserved.
  */
@@ -21,14 +21,36 @@ interface HeroStats {
   life?: number
 }
 
-defineProps<{
+const props = defineProps<{
   recommendation: BuildRecommendation
   currentStats?: HeroStats
 }>()
+
+const hasWarnings = () => {
+  return props.recommendation.validationWarnings &&
+         props.recommendation.validationWarnings.length > 0
+}
 </script>
 
 <template>
   <div class="build-recommendations">
+    <!-- Validation Warnings -->
+    <div v-if="hasWarnings()" class="validation-warnings">
+      <div class="warning-header">
+        <span class="warning-icon">⚠️</span>
+        <span>AI Recommendation Issues Detected</span>
+      </div>
+      <ul class="warning-list">
+        <li
+          v-for="(warning, index) in recommendation.validationWarnings"
+          :key="index"
+          :class="['warning-item', `severity-${warning.severity}`]"
+        >
+          {{ warning.message }}
+        </li>
+      </ul>
+    </div>
+
     <!-- Projected Improvements -->
     <StatProjections
       v-if="recommendation.projectedImprovements && currentStats"
@@ -79,6 +101,50 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+
+/* Validation Warnings */
+.validation-warnings {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.warning-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #ef4444;
+  margin-bottom: 0.75rem;
+}
+
+.warning-icon {
+  font-size: 1.125rem;
+}
+
+.warning-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.warning-item {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.warning-item:last-child {
+  margin-bottom: 0;
+}
+
+.warning-item.severity-error {
+  color: #ef4444;
+}
+
+.warning-item.severity-warning {
+  color: #f59e0b;
 }
 
 .summary-section,

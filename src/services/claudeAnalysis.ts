@@ -3,13 +3,18 @@
  * @description Claude AI service for build recommendations
  *
  * @author drsii
- * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20250514)
+ * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20251101)
  * @license MIT
  * @copyright (c) 2025 drsii. All rights reserved.
  */
 
 import { useSettingsStore } from '@/stores/settings'
 import type { Hero } from '@/types/hero'
+import {
+  isPassiveSkill,
+  checkRingSlotConflicts,
+  type ValidationWarning
+} from '@/data/d3Reference'
 
 export interface SkillRecommendation {
   skill: string
@@ -55,8 +60,10 @@ export type StatRating = 'minor' | 'moderate' | 'major' | 'transformative'
 
 export interface StatProjection {
   current: number | null
+  projectedValue?: number
   estimatedMultiplier: string
   rating: StatRating
+  justification?: string
   note?: string
 }
 
@@ -89,6 +96,7 @@ export interface BuildRecommendation {
   farmingPriority: string[]
   summary: string
   projectedImprovements?: ProjectedImprovements
+  validationWarnings?: ValidationWarning[]
 }
 
 class ClaudeAnalysisService {
@@ -144,7 +152,12 @@ class ClaudeAnalysisService {
       throw new Error('No response from Claude')
     }
 
-    return this.parseResponse(content)
+    const recommendation = this.parseResponse(content)
+
+    // Validate the response and attach warnings
+    recommendation.validationWarnings = this.validateResponse(recommendation, hero.heroClass)
+
+    return recommendation
   }
 
   /**
@@ -189,55 +202,106 @@ class ClaudeAnalysisService {
 - **Hardcore**: ${hero.hardcore ? 'Yes' : 'No'}
 
 ## Current Build
-- **Active Skills**: ${activeSkills}
-- **Passive Skills**: ${passiveSkills}
+- **Active Skills (6 slots)**: ${activeSkills}
+- **Passive Skills (4 slots, no runes)**: ${passiveSkills}
 - **Equipped Sets**: ${setsInfo}
 - **Kanai's Cube**: ${cubePowers}
 - **Legendary Gems**: ${legendaryGems}
 
-## Stats
-- **Damage**: ${hero.damage?.toLocaleString() || 'Unknown'}
-- **Toughness**: ${hero.toughness?.toLocaleString() || 'Unknown'}
-- **Recovery**: ${hero.recovery?.toLocaleString() || 'Unknown'}
-- **Life**: ${hero.life?.toLocaleString() || 'Unknown'}
+## Current Stats (actual values)
+- **Damage**: ${hero.damage?.toLocaleString() || 'Unknown'} (${hero.damage || 0} raw)
+- **Toughness**: ${hero.toughness?.toLocaleString() || 'Unknown'} (${hero.toughness || 0} raw)
+- **Recovery**: ${hero.recovery?.toLocaleString() || 'Unknown'} (${hero.recovery || 0} raw)
+- **Life**: ${hero.life?.toLocaleString() || 'Unknown'} (${hero.life || 0} raw)
 
-Based on this ${hero.heroClass}'s current setup and paragon level, provide build recommendations optimized for efficient Greater Rift pushing and farming.
+## CRITICAL ACCURACY RULES - READ CAREFULLY
+
+1. **SKILL TYPES**:
+   - Active skills have rune options (6 slots). Examples: Bone Spear, Corpse Lance, Death Nova
+   - Passive skills do NOT have runes (4 slots). Examples: Bone Prison, Final Service, Swift Harvesting
+   - NEVER recommend a passive skill in the "active" skills array
+   - NEVER give a passive skill a rune
+
+2. **EQUIPMENT SLOT CONSTRAINTS**:
+   - The hero has exactly 2 ring slots and 1 amulet slot
+   - Focus + Restraint uses BOTH ring slots - you CANNOT also use Compass Rose
+   - The Traveler's Pledge + The Compass Rose (Endless Walk set) uses amulet + 1 ring slot
+   - Check that your ring/amulet recommendations don't exceed available slots
+
+3. **ITEM EFFECTS - BE ACCURATE**:
+   - Only describe the ACTUAL legendary power, not invented effects
+   - Scythe of the Cycle: "+400% secondary skill damage while Bone Armor active, reduces Bone Armor duration by 4 sec per cast"
+   - Lost Time: "Cold skills reduce enemy movement speed by 30%, gain 8% movement speed per enemy hit"
+   - Krysbin's Sentence: "75-100% increased damage vs slowed, 300-400% vs stunned/frozen/charmed"
+   - If you're unsure of an item's exact effect, say so rather than inventing one
+
+4. **PROJECTION CALCULATIONS**:
+   - You MUST calculate actual projected stat values based on the current values provided
+   - Show your math: cite specific set bonuses, legendary powers, and multipliers
+   - The multiplier must be consistent with (projectedValue / currentValue)
+   - Example: Current damage 1,000,000 with ~8x multiplier means projectedValue should be ~8,000,000
+
+Based on this ${hero.heroClass}'s current setup and paragon level, provide build recommendations optimized for ${hero.hardcore ? 'hardcore survivability and' : ''} efficient Greater Rift pushing and farming.
 
 Respond with a JSON object in this exact format (no markdown, just raw JSON):
 {
   "skills": {
     "active": [
-      {"skill": "Skill Name", "rune": "Rune Name", "reason": "Why this skill"}
+      {"skill": "Active Skill Name", "rune": "Rune Name", "reason": "Why this skill and what it does"}
     ],
     "passive": [
-      {"skill": "Passive Name", "reason": "Why this passive"}
+      {"skill": "Passive Skill Name", "reason": "Why this passive (NO rune field - passives don't have runes)"}
     ]
   },
   "gear": {
     "sets": [
-      {"name": "Set Name", "pieces": 6, "reason": "Why this set"}
+      {"name": "Set Name", "pieces": 6, "reason": "Why this set and what the 6pc bonus provides"}
     ],
     "items": [
-      {"slot": "mainHand", "item": "Item Name", "reason": "Why this item"}
+      {"slot": "mainHand", "item": "Item Name", "reason": "The ACTUAL legendary power this item provides"}
     ],
     "cubePowers": {
-      "weapon": {"name": "Weapon Power Name", "reason": "Why this power and what stat/effect it provides"},
-      "armor": {"name": "Armor Power Name", "reason": "Why this power and what stat/effect it provides"},
-      "jewelry": {"name": "Jewelry Power Name", "reason": "Why this power and what stat/effect it provides"}
+      "weapon": {"name": "Weapon Power Name", "reason": "The ACTUAL effect: e.g., '+400% secondary damage while Bone Armor active'"},
+      "armor": {"name": "Armor Power Name", "reason": "The ACTUAL effect: e.g., '50% damage reduction above 90% resource'"},
+      "jewelry": {"name": "Jewelry Power Name", "reason": "The ACTUAL effect with specific percentages"}
     }
   },
   "gems": [
-    {"name": "Gem Name", "priority": 1, "reason": "Why this gem"}
+    {"name": "Gem Name", "priority": 1, "reason": "Why this gem and its effect at rank 25+"}
   ],
-  "playstyle": "Brief description of how to play this build",
-  "farmingPriority": ["First item to farm", "Second item to farm"],
-  "summary": "One paragraph summary of the recommended build and why",
+  "playstyle": "Brief description of how to play this build including skill rotation",
+  "farmingPriority": ["Most important item to farm first", "Second priority"],
+  "summary": "One paragraph summary of the recommended build and why it works for this character",
   "projectedImprovements": {
-    "damage": {"estimatedMultiplier": "2-3x", "rating": "major", "note": "Optional context"},
-    "toughness": {"estimatedMultiplier": "1.5x", "rating": "moderate"},
-    "recovery": {"estimatedMultiplier": "2x", "rating": "moderate"},
-    "life": {"estimatedMultiplier": "1.2x", "rating": "minor"},
-    "grTierPotential": {"current": "GR 70-80", "projected": "GR 100-110", "note": "With full set and optimized gems"}
+    "damage": {
+      "projectedValue": 8000000,
+      "estimatedMultiplier": "~8x",
+      "rating": "major",
+      "justification": "Inarius 6pc (10,000% bone skill damage) + Focus/Restraint (2.25x) provides massive multiplicative scaling"
+    },
+    "toughness": {
+      "projectedValue": 50000000,
+      "estimatedMultiplier": "~2.5x",
+      "rating": "moderate",
+      "justification": "Aquila Cuirass (50% DR) and proper armor rolls increase survivability"
+    },
+    "recovery": {
+      "projectedValue": 1200000,
+      "estimatedMultiplier": "~1.6x",
+      "rating": "moderate",
+      "justification": "Life per hit on gear and Esoteric Alteration gem"
+    },
+    "life": {
+      "projectedValue": 800000,
+      "estimatedMultiplier": "~1.2x",
+      "rating": "minor",
+      "justification": "Vitality rolls on gear"
+    },
+    "grTierPotential": {
+      "current": "GR 70-75",
+      "projected": "GR 100-110",
+      "note": "With complete set, level 80+ gems, and optimized gear"
+    }
   }
 }`
   }
@@ -266,8 +330,10 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
       const s = stat as Record<string, unknown>
       return {
         current: typeof s.current === 'number' ? s.current : null,
+        projectedValue: typeof s.projectedValue === 'number' ? s.projectedValue : undefined,
         estimatedMultiplier: String(s.estimatedMultiplier || 'N/A'),
         rating: this.validateRating(s.rating),
+        justification: s.justification ? String(s.justification) : undefined,
         note: s.note ? String(s.note) : undefined
       }
     }
@@ -380,6 +446,67 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
       console.log('Raw response:', content)
       throw new Error('Failed to parse build recommendations. Please try again.')
     }
+  }
+
+  /**
+   * Validate the AI response for common errors
+   * Returns an array of warnings that can be displayed to the user
+   */
+  private validateResponse(
+    recommendation: BuildRecommendation,
+    heroClass: string
+  ): ValidationWarning[] {
+    const warnings: ValidationWarning[] = []
+
+    // Check for passive skills incorrectly placed in active slots
+    for (const activeSkill of recommendation.skills.active) {
+      if (isPassiveSkill(heroClass, activeSkill.skill)) {
+        warnings.push({
+          type: 'skill_type_error',
+          message: `"${activeSkill.skill}" is a passive skill, not an active skill. It should not have a rune.`,
+          severity: 'error'
+        })
+      }
+    }
+
+    // Check for ring slot conflicts
+    const recommendedSets = recommendation.gear.sets.map(s => s.name)
+    const ringItems = recommendation.gear.items
+      .filter(i => i.slot === 'leftFinger' || i.slot === 'rightFinger' || i.slot === 'ring1' || i.slot === 'ring2')
+      .map(i => i.item)
+
+    // Add ring items to the set check
+    const allRingRelated = [...recommendedSets, ...ringItems]
+    const conflicts = checkRingSlotConflicts(allRingRelated)
+
+    if (conflicts) {
+      warnings.push({
+        type: 'slot_conflict',
+        message: `Ring slot conflict: Cannot equip both ${conflicts.join(' and ')} - only 2 ring slots available.`,
+        severity: 'error'
+      })
+    }
+
+    // Check for Endless Walk + Focus/Restraint conflict
+    const hasEndlessWalk = allRingRelated.some(name =>
+      name.toLowerCase().includes('traveler') ||
+      name.toLowerCase().includes('compass rose') ||
+      name.toLowerCase().includes('endless walk')
+    )
+    const hasFocusRestraint = allRingRelated.some(name =>
+      name.toLowerCase().includes('focus') ||
+      name.toLowerCase().includes('restraint')
+    )
+
+    if (hasEndlessWalk && hasFocusRestraint) {
+      warnings.push({
+        type: 'slot_conflict',
+        message: 'Cannot use Endless Walk set (Traveler\'s Pledge + Compass Rose) with Focus and Restraint - both require ring slots.',
+        severity: 'error'
+      })
+    }
+
+    return warnings
   }
 }
 

@@ -70,7 +70,8 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(`${settings.proxyUrl}/api/token`, {
+      const baseUrl = settings.proxyUrl.replace(/\/+$/, '')
+      const response = await fetch(`${baseUrl}/api/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
