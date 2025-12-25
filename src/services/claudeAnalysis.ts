@@ -10,11 +10,22 @@
 
 import { useSettingsStore } from '@/stores/settings'
 import type { Hero } from '@/types/hero'
+import type {
+  TieredUpgrades,
+  ProgressionPath,
+  UpgradeStep,
+  ItemAcquisition,
+  DifficultyTier
+} from '@/types/progression'
+import type { MetaBuildReference } from '@/types/maxroll'
 import {
   isPassiveSkill,
   checkRingSlotConflicts,
+  SET_BONUSES,
+  getItemAcquisition,
   type ValidationWarning
 } from '@/data/d3Reference'
+import { FARMING_METHOD_INFO } from '@/types/progression'
 
 export interface SkillRecommendation {
   skill: string
@@ -27,9 +38,15 @@ export interface PassiveRecommendation {
   reason: string
 }
 
+export interface SetBonusTier {
+  pieces: number
+  bonus: string
+}
+
 export interface SetRecommendation {
   name: string
   pieces: number
+  bonuses?: SetBonusTier[]
   reason: string
 }
 
@@ -99,6 +116,23 @@ export interface BuildRecommendation {
   validationWarnings?: ValidationWarning[]
 }
 
+/**
+ * Enhanced build recommendation with tiered upgrades and progression path
+ */
+export interface EnhancedBuildRecommendation extends BuildRecommendation {
+  tieredUpgrades: TieredUpgrades
+  progressionPath: ProgressionPath
+  metaBuildReference?: MetaBuildReference
+}
+
+/**
+ * Options for enhanced analysis
+ */
+export interface AnalysisOptions {
+  useMetaBuilds: boolean
+  focusOnSurvivability: boolean
+}
+
 class ClaudeAnalysisService {
   private readonly API_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -158,6 +192,210 @@ class ClaudeAnalysisService {
     recommendation.validationWarnings = this.validateResponse(recommendation, hero.heroClass)
 
     return recommendation
+  }
+
+  /**
+   * Generate enhanced build recommendations with tiered upgrades and progression path
+   */
+  async analyzeHeroEnhanced(
+    hero: Hero,
+    options: AnalysisOptions,
+    metaBuild?: MetaBuildReference
+  ): Promise<EnhancedBuildRecommendation> {
+    const settings = useSettingsStore()
+
+    if (!settings.claudeApiKey) {
+      throw new Error('Claude API key not configured. Add it in Settings.')
+    }
+
+    const prompt = this.buildEnhancedPrompt(hero, options, metaBuild)
+
+    const response = await fetch(this.API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': settings.claudeApiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8192, // Larger for tiered output
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      if (response.status === 401) {
+        throw new Error('Invalid Claude API key. Please check your settings.')
+      }
+      if (response.status === 429) {
+        throw new Error('Rate limited. Please try again in a moment.')
+      }
+      throw new Error(error.error?.message || `Claude API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const content = data.content?.[0]?.text
+
+    if (!content) {
+      throw new Error('No response from Claude')
+    }
+
+    const recommendation = this.parseEnhancedResponse(content)
+
+    // Validate the response and attach warnings
+    recommendation.validationWarnings = this.validateResponse(recommendation, hero.heroClass)
+
+    // Attach meta build reference if provided
+    if (metaBuild) {
+      recommendation.metaBuildReference = metaBuild
+    }
+
+    return recommendation
+  }
+
+  /**
+   * Build enhanced prompt with tiered upgrade requirements
+   */
+  private buildEnhancedPrompt(
+    hero: Hero,
+    options: AnalysisOptions,
+    metaBuild?: MetaBuildReference
+  ): string {
+    // Build the base hero info section
+    const basePrompt = this.buildPrompt(hero)
+
+    // Add meta build context if available
+    let metaContext = ''
+    if (metaBuild) {
+      metaContext = `
+## Meta Build Reference (from Maxroll.gg)
+**Build**: ${metaBuild.buildName} (${metaBuild.tier}-Tier)
+**Guide**: ${metaBuild.guideUrl}
+${metaBuild.coreItems.length > 0 ? `**Core Items**: ${metaBuild.coreItems.join(', ')}` : ''}
+${metaBuild.keySynergies.length > 0 ? `**Key Synergies**: ${metaBuild.keySynergies.join(', ')}` : ''}
+
+Use this meta build as reference for optimal recommendations.
+`
+    }
+
+    // Build farming methods info
+    const farmingInfo = Object.entries(FARMING_METHOD_INFO)
+      .map(([_method, info]) => `- **${info.label}**: ${info.description}`)
+      .join('\n')
+
+    return `${basePrompt}
+
+${metaContext}
+
+## ADDITIONAL REQUIREMENTS: Tiered Upgrade Progression
+
+You must also provide upgrade recommendations categorized by estimated farming time.
+${options.focusOnSurvivability ? '**HARDCORE MODE**: Prioritize survivability in all recommendations.' : ''}
+
+### Time-Based Tiers:
+- **Quick** (< 1 hour): Craftable items, easy Kadala gambles, common legendary drops
+- **Medium** (1-5 hours): Specific set pieces, targeted legendaries, gems to rank 25
+- **Long** (5+ hours): Ancient/Primal versions, rare items, gems to rank 80+
+
+### Farming Methods Reference:
+${farmingInfo}
+
+For each upgrade step, provide:
+1. Item name and slot
+2. Best farming method
+3. Approximate cost (blood shards or Death's Breath if applicable)
+4. Power increase rating (minor/moderate/major/transformative)
+5. Dependencies (what needs to be obtained first)
+6. What this upgrade unlocks or enables
+
+### Response Format
+
+Include these additional fields in your JSON response:
+
+{
+  // ... all previous fields ...
+
+  "tieredUpgrades": {
+    "quick": [
+      {
+        "id": "captain-crimson",
+        "priority": 1,
+        "item": {
+          "itemName": "Captain Crimson's Trimmings (3pc)",
+          "slot": "waist,legs",
+          "methods": ["crafting"],
+          "primaryMethod": "crafting",
+          "estimatedTime": "quick",
+          "bountyMaterialsRequired": true,
+          "notes": "Craft at blacksmith after getting recipe from bounty cache"
+        },
+        "reason": "20% CDR and damage/toughness scaling with CDR/RCR",
+        "powerIncrease": "major",
+        "dependsOn": [],
+        "unlocks": ["Can drop Focus/Restraint for more flexibility"]
+      }
+    ],
+    "medium": [
+      {
+        "id": "core-weapon",
+        "priority": 1,
+        "item": {
+          "itemName": "Scythe of the Cycle",
+          "slot": "mainHand",
+          "methods": ["cube_upgrade", "kadala"],
+          "primaryMethod": "cube_upgrade",
+          "estimatedTime": "medium",
+          "deathsBreathCost": 25
+        },
+        "reason": "400% damage to secondary skills - build defining",
+        "powerIncrease": "transformative",
+        "dependsOn": [],
+        "unlocks": ["Enables Bone Spear build"]
+      }
+    ],
+    "long": [
+      {
+        "id": "ancient-weapon",
+        "priority": 1,
+        "item": {
+          "itemName": "Ancient Scythe of the Cycle",
+          "slot": "mainHand",
+          "methods": ["cube_reforge"],
+          "primaryMethod": "cube_reforge",
+          "estimatedTime": "long",
+          "forgottenSoulCost": 50,
+          "bountyMaterialsRequired": true
+        },
+        "reason": "30% more stats than non-ancient",
+        "powerIncrease": "moderate",
+        "dependsOn": ["core-weapon"],
+        "unlocks": ["Higher GR potential"]
+      }
+    ]
+  },
+  "progressionPath": {
+    "currentPhase": "Early gearing - missing core set pieces",
+    "steps": [
+      {
+        "id": "step-1",
+        "priority": 1,
+        "item": { /* same format as above */ },
+        "reason": "First priority because...",
+        "powerIncrease": "major"
+      }
+    ],
+    "totalEstimatedTime": "~8-12 hours",
+    "criticalPath": ["captain-crimson", "core-weapon", "ring-of-royal-grandeur"]
+  }
+}`
   }
 
   /**
@@ -241,6 +479,14 @@ class ClaudeAnalysisService {
    - The multiplier must be consistent with (projectedValue / currentValue)
    - Example: Current damage 1,000,000 with ~8x multiplier means projectedValue should be ~8,000,000
 
+5. **SET BONUSES - INCLUDE ALL TIERS**:
+   - For each set you recommend, list ALL bonus tiers the player will receive
+   - If recommending 6 pieces: include 2pc, 4pc, AND 6pc bonuses
+   - If recommending 4 pieces: include 2pc AND 4pc bonuses
+   - Some sets have 2pc and 3pc bonuses (Captain Crimson's, Sage's Journey, Aughild's)
+   - You can recommend multiple sets (e.g., 6pc Inarius + 3pc Captain Crimson using Ring of Royal Grandeur)
+   - Ring of Royal Grandeur reduces set requirements by 1 (5pc counts as 6pc bonus)
+
 Based on this ${hero.heroClass}'s current setup and paragon level, provide build recommendations optimized for ${hero.hardcore ? 'hardcore survivability and' : ''} efficient Greater Rift pushing and farming.
 
 Respond with a JSON object in this exact format (no markdown, just raw JSON):
@@ -255,7 +501,16 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
   },
   "gear": {
     "sets": [
-      {"name": "Set Name", "pieces": 6, "reason": "Why this set and what the 6pc bonus provides"}
+      {
+        "name": "Grace of Inarius",
+        "pieces": 6,
+        "bonuses": [
+          {"pieces": 2, "bonus": "Bone Armor damage is increased by 1000%"},
+          {"pieces": 4, "bonus": "Bone Armor grants 3% damage reduction per enemy hit"},
+          {"pieces": 6, "bonus": "Bone Armor tornado deals 1000% damage, enemies take 10,000% more damage from you"}
+        ],
+        "reason": "Core damage set for bone skill builds"
+      }
     ],
     "items": [
       {"slot": "mainHand", "item": "Item Name", "reason": "The ACTUAL legendary power this item provides"}
@@ -409,6 +664,57 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
   }
 
   /**
+   * Normalize set recommendations and add bonus tiers from reference data if missing
+   */
+  private normalizeSets(sets: unknown[]): SetRecommendation[] {
+    if (!Array.isArray(sets)) return []
+
+    return sets.map(set => {
+      if (!set || typeof set !== 'object') {
+        return { name: '', pieces: 0, reason: '' }
+      }
+
+      const s = set as Record<string, unknown>
+      const name = String(s.name || '')
+      const pieces = typeof s.pieces === 'number' ? s.pieces : 0
+      const reason = String(s.reason || '')
+
+      // If bonuses are provided, use them
+      if (Array.isArray(s.bonuses) && s.bonuses.length > 0) {
+        return {
+          name,
+          pieces,
+          bonuses: s.bonuses.map((b: unknown) => {
+            const bonus = b as Record<string, unknown>
+            return {
+              pieces: typeof bonus.pieces === 'number' ? bonus.pieces : 0,
+              bonus: String(bonus.bonus || '')
+            }
+          }),
+          reason
+        }
+      }
+
+      // Fall back to reference data if available
+      const refBonuses = SET_BONUSES[name]
+      if (refBonuses) {
+        const bonuses = Object.entries(refBonuses)
+          .filter(([tierPieces]) => Number(tierPieces) <= pieces)
+          .map(([tierPieces, bonus]) => ({
+            pieces: Number(tierPieces),
+            bonus: String(bonus)
+          }))
+          .sort((a, b) => a.pieces - b.pieces)
+
+        return { name, pieces, bonuses, reason }
+      }
+
+      // No bonuses available
+      return { name, pieces, reason }
+    })
+  }
+
+  /**
    * Parse Claude's response into structured recommendations
    */
   private parseResponse(content: string): BuildRecommendation {
@@ -431,7 +737,7 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
           passive: parsed.skills?.passive || []
         },
         gear: {
-          sets: parsed.gear?.sets || [],
+          sets: this.normalizeSets(parsed.gear?.sets || []),
           items: parsed.gear?.items || [],
           cubePowers: this.normalizeCubePowers(parsed.gear?.cubePowers)
         },
@@ -446,6 +752,198 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
       console.log('Raw response:', content)
       throw new Error('Failed to parse build recommendations. Please try again.')
     }
+  }
+
+  /**
+   * Parse enhanced Claude response with tiered upgrades
+   */
+  private parseEnhancedResponse(content: string): EnhancedBuildRecommendation {
+    // Parse base recommendation first
+    const baseRec = this.parseResponse(content)
+
+    // Extract JSON for enhanced fields
+    let jsonStr = content.trim()
+    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim()
+    }
+
+    try {
+      const parsed = JSON.parse(jsonStr)
+
+      // Normalize tiered upgrades
+      const tieredUpgrades = this.normalizeTieredUpgrades(parsed.tieredUpgrades)
+
+      // Normalize progression path
+      const progressionPath = this.normalizeProgressionPath(parsed.progressionPath)
+
+      return {
+        ...baseRec,
+        tieredUpgrades,
+        progressionPath
+      }
+    } catch (e) {
+      console.error('Failed to parse enhanced response, using defaults:', e)
+
+      // Return base recommendation with empty tiered upgrades
+      return {
+        ...baseRec,
+        tieredUpgrades: { quick: [], medium: [], long: [] },
+        progressionPath: {
+          currentPhase: 'Analysis in progress',
+          steps: [],
+          totalEstimatedTime: 'Unknown',
+          criticalPath: []
+        }
+      }
+    }
+  }
+
+  /**
+   * Normalize tiered upgrades from Claude response
+   */
+  private normalizeTieredUpgrades(upgrades: unknown): TieredUpgrades {
+    const empty: TieredUpgrades = { quick: [], medium: [], long: [] }
+
+    if (!upgrades || typeof upgrades !== 'object') {
+      return empty
+    }
+
+    const u = upgrades as Record<string, unknown>
+
+    return {
+      quick: this.normalizeUpgradeSteps(u.quick, 'quick'),
+      medium: this.normalizeUpgradeSteps(u.medium, 'medium'),
+      long: this.normalizeUpgradeSteps(u.long, 'long')
+    }
+  }
+
+  /**
+   * Normalize an array of upgrade steps
+   */
+  private normalizeUpgradeSteps(steps: unknown, tier: DifficultyTier): UpgradeStep[] {
+    if (!Array.isArray(steps)) return []
+
+    return steps.map((step, index) => {
+      if (!step || typeof step !== 'object') {
+        return this.createDefaultUpgradeStep(index, tier)
+      }
+
+      const s = step as Record<string, unknown>
+      const item = this.normalizeItemAcquisition(s.item, tier)
+
+      return {
+        id: String(s.id || `${tier}-${index}`),
+        priority: typeof s.priority === 'number' ? s.priority : index + 1,
+        item,
+        reason: String(s.reason || ''),
+        powerIncrease: this.validatePowerIncrease(s.powerIncrease),
+        dependsOn: Array.isArray(s.dependsOn) ? s.dependsOn.map(String) : undefined,
+        unlocks: Array.isArray(s.unlocks) ? s.unlocks.map(String) : undefined
+      }
+    })
+  }
+
+  /**
+   * Normalize item acquisition data
+   */
+  private normalizeItemAcquisition(item: unknown, defaultTier: DifficultyTier): ItemAcquisition {
+    if (!item || typeof item !== 'object') {
+      return {
+        itemName: 'Unknown Item',
+        slot: 'unknown',
+        methods: ['world_drop'],
+        primaryMethod: 'world_drop',
+        estimatedTime: defaultTier
+      }
+    }
+
+    const i = item as Record<string, unknown>
+    const itemName = String(i.itemName || '')
+
+    // Try to get additional info from our reference data
+    const refData = getItemAcquisition(itemName)
+
+    return {
+      itemName,
+      slot: String(i.slot || refData.slot || 'unknown'),
+      methods: Array.isArray(i.methods) ? i.methods : (refData.methods || ['world_drop']),
+      primaryMethod: String(i.primaryMethod || refData.primaryMethod || 'world_drop') as ItemAcquisition['primaryMethod'],
+      estimatedTime: this.validateDifficultyTier(i.estimatedTime) || refData.estimatedTime || defaultTier,
+      bloodShardCost: typeof i.bloodShardCost === 'number' ? i.bloodShardCost : refData.bloodShardCost,
+      deathsBreathCost: typeof i.deathsBreathCost === 'number' ? i.deathsBreathCost : refData.deathsBreathCost,
+      forgottenSoulCost: typeof i.forgottenSoulCost === 'number' ? i.forgottenSoulCost : refData.forgottenSoulCost,
+      bountyMaterialsRequired: Boolean(i.bountyMaterialsRequired || refData.bountyMaterialsRequired),
+      craftingRecipeSource: i.craftingRecipeSource ? String(i.craftingRecipeSource) : refData.craftingRecipeSource,
+      dropLocations: Array.isArray(i.dropLocations) ? i.dropLocations.map(String) : refData.dropLocations,
+      notes: i.notes ? String(i.notes) : refData.notes
+    }
+  }
+
+  /**
+   * Create a default upgrade step
+   */
+  private createDefaultUpgradeStep(index: number, tier: DifficultyTier): UpgradeStep {
+    return {
+      id: `${tier}-${index}`,
+      priority: index + 1,
+      item: {
+        itemName: 'Unknown Item',
+        slot: 'unknown',
+        methods: ['world_drop'],
+        primaryMethod: 'world_drop',
+        estimatedTime: tier
+      },
+      reason: 'Upgrade recommended',
+      powerIncrease: 'moderate'
+    }
+  }
+
+  /**
+   * Normalize progression path from Claude response
+   */
+  private normalizeProgressionPath(path: unknown): ProgressionPath {
+    const empty: ProgressionPath = {
+      currentPhase: 'Starting out',
+      steps: [],
+      totalEstimatedTime: 'Unknown',
+      criticalPath: []
+    }
+
+    if (!path || typeof path !== 'object') {
+      return empty
+    }
+
+    const p = path as Record<string, unknown>
+
+    return {
+      currentPhase: String(p.currentPhase || 'Starting out'),
+      steps: this.normalizeUpgradeSteps(p.steps, 'medium'),
+      totalEstimatedTime: String(p.totalEstimatedTime || 'Unknown'),
+      criticalPath: Array.isArray(p.criticalPath) ? p.criticalPath.map(String) : []
+    }
+  }
+
+  /**
+   * Validate difficulty tier value
+   */
+  private validateDifficultyTier(tier: unknown): DifficultyTier | null {
+    const validTiers: DifficultyTier[] = ['quick', 'medium', 'long']
+    if (typeof tier === 'string' && validTiers.includes(tier as DifficultyTier)) {
+      return tier as DifficultyTier
+    }
+    return null
+  }
+
+  /**
+   * Validate power increase rating
+   */
+  private validatePowerIncrease(power: unknown): UpgradeStep['powerIncrease'] {
+    const valid = ['minor', 'moderate', 'major', 'transformative']
+    if (typeof power === 'string' && valid.includes(power)) {
+      return power as UpgradeStep['powerIncrease']
+    }
+    return 'moderate'
   }
 
   /**

@@ -8,6 +8,8 @@
  * @copyright (c) 2025 drsii. All rights reserved.
  */
 
+import type { ItemAcquisition } from '@/types/progression'
+
 /**
  * Passive skills by class - used to validate AI doesn't recommend passives as active skills
  */
@@ -136,6 +138,7 @@ export const LEGENDARY_EFFECTS: Record<string, string> = {
  * Major set bonuses for reference
  */
 export const SET_BONUSES: Record<string, Record<number, string>> = {
+  // Necromancer Sets
   'Grace of Inarius': {
     2: 'Bone Armor damage is increased by 1000%',
     4: 'Bone Armor grants an additional 3% damage reduction per enemy hit',
@@ -160,6 +163,841 @@ export const SET_BONUSES: Record<string, Record<number, string>> = {
     2: 'Your Simulacrums no longer take damage, gains all runes, and its cooldown is refreshed when you die',
     4: 'While you have a Simulacrum, damage taken is reduced by 50%. Damage dealt to you is split with your Simulacrums',
     6: 'Bone Spear cast by you and your Simulacrums deals 10,000% increased damage'
+  },
+
+  // Craftable Sets (2pc + 3pc bonuses)
+  'Captain Crimson\'s Trimmings': {
+    2: 'Regenerates 6000 Life per Second. Reduces cooldown of all skills by 20%',
+    3: 'Damage dealt is increased by your percentage of Cooldown Reduction. Damage taken is reduced by your percentage of Resource Cost Reduction'
+  },
+  'Sage\'s Journey': {
+    2: 'Gain Death\'s Breath after killing an elite pack',
+    3: 'Double the amount of Death\'s Breath that drop'
+  },
+  'Aughild\'s Authority': {
+    2: 'Reduces damage taken by 15%',
+    3: 'Reduces damage taken from elites by 30%. Increases damage dealt to elites by 30%'
+  },
+  'Born\'s Command': {
+    2: 'Reduces all cooldowns by 10%',
+    3: '+15% Life. +20% bonus experience'
+  },
+  'Cain\'s Destiny': {
+    2: '+50% bonus experience',
+    3: 'Attack Speed increased by 8%. 25% better chance of finding a Legendary item'
+  },
+  'Asheara\'s Vestments': {
+    2: '+20% Life',
+    3: 'Attacks cause your followers to occasionally come to your aid'
+  },
+  'Guardian\'s Jeopardy': {
+    2: '+250 Vitality',
+    3: '+15% movement speed. Regenerates 8000 Life per Second'
+  },
+  'Demon\'s Hide': {
+    2: 'Reduces damage from melee attacks by 20%',
+    3: 'Reduces damage from ranged attacks by 20%'
+  },
+
+  // Barbarian Sets
+  'Wrath of the Wastes': {
+    2: 'Increase the damage per second of Rend by 500% and its duration to 15 seconds',
+    4: 'During Whirlwind and for 3 seconds after, you gain 50% damage reduction and your applied Rends deal triple damage',
+    6: 'Whirlwind gains the effect of the Dust Devils rune and Whirlwind and its Dust Devils deal 10,000% increased damage'
+  },
+  'Immortal King\'s Call': {
+    2: 'Call of the Ancients last until they die',
+    4: 'Reduce the cooldown of Wrath of the Berserker and Call of the Ancients by 3 seconds for every 10 Fury you spend with an attack',
+    6: 'While both Wrath of the Berserker and Call of the Ancients are active, you deal 4000% increased damage'
+  },
+  'Horde of the Ninety Savages': {
+    2: 'Double the effectiveness of shouts. Shouts instead grant 100% increased damage',
+    4: 'Each stack of Frenzy reduces damage taken by 6% and increases damage dealt by 10%',
+    6: 'Frenzy deals 10,000% increased damage'
+  },
+  'Might of the Earth': {
+    2: 'Reduce the cooldown of Earthquake, Ground Stomp, Leap, and Avalanche by 1 second for every 30 Fury spent with an attack',
+    4: 'Leap causes an Earthquake when you land. Leap gains the effect of the Iron Impact rune and the rune effect and duration are increased by 150%',
+    6: 'Increase the damage of Earthquake, Avalanche, Leap, Ground Stomp, Ancient Spear, and Seismic Slam by 20,000%'
+  },
+
+  // Demon Hunter Sets
+  'Unhallowed Essence': {
+    2: 'Your generators generate 2 additional Hatred and 1 Discipline',
+    4: 'Gain 60% damage reduction and deal 60% increased damage for 8 seconds if no enemy is within 10 yards of you',
+    6: 'Your generators, Multishot, and Vengeance deal 100% increased damage for every point of Discipline you have'
+  },
+  'Natalya\'s Vengeance': {
+    2: 'Reduce the cooldown of Rain of Vengeance by 4 seconds when you hit with a Hatred-generating attack or a Hatred-spending attack',
+    4: 'Rain of Vengeance deals 100% increased damage',
+    6: 'After casting Rain of Vengeance, deal 14,000% increased damage and take 60% reduced damage for 10 seconds'
+  },
+  'Marauder\'s': {
+    2: 'Companion calls all companion types to your side',
+    4: 'Sentries deal 400% increased damage and cast Elemental Arrow, Chakram, Impale, Multishot, and Cluster Arrow when you do',
+    6: 'Your primary skills, Elemental Arrow, Chakram, Impale, Multishot, Cluster Arrow, Companions, and Vengeance deal 12,000% increased damage for every active Sentry'
+  },
+
+  // Wizard Sets
+  'Tal Rasha\'s Elements': {
+    2: 'Damaging enemies with Arcane, Cold, Fire or Lightning will cause a Meteor of the same damage type to fall from the sky. There is an 8 second cooldown for each damage type',
+    4: 'Arcane, Cold, Fire, and Lightning attacks each increase all of your resistances by 25% for 8 seconds',
+    6: 'Attacks increase your damage by 2000% for 8 seconds. Arcane, Cold, Fire, and Lightning attacks each add one stack. At 4 stacks, each element\'s damage bonus is increased to 8000%'
+  },
+  'Firebird\'s Finery': {
+    2: 'When you die, a meteor falls from the sky and revives you. This effect has a 60 second cooldown',
+    4: 'Your damage is increased by 80% and damage taken reduced by 3% for each enemy that is Ignited. This effect can stack up to 20 times',
+    6: 'You gain 2500% increased damage while Ignite is applied to a target. Hitting an Ignited enemy with a non-channeling fire spell deals Ignite damage multiplied by Combustion stacks'
+  },
+
+  // Monk Sets
+  'Inna\'s Mantra': {
+    2: 'Increase the passive effect of your Mystic Ally and the damage of your Mystic Ally by 100%',
+    4: 'Gain the base effect of all four Mantras at all times. Your Mystic Allies are unkillable',
+    6: 'Gain the passive abilities of the five runed Mystic Allies at all times. Attacking enemies creates your runed Mystic Allies that deal 950% weapon damage on hit. Your Mystic Allies deal 9500% increased damage'
+  },
+  'Patterns of Justice': {
+    2: 'Sweeping Wind gains the effect of every rune, and movement speed is increased by 5% for each stack of Sweeping Wind',
+    4: 'Tempest Rush gains the effect of the Flurry rune, and Tempest Rush and Flurry deal 15,000% increased damage',
+    6: 'Hitting with Tempest Rush while Sweeping Wind is active increases the size of Sweeping Wind and also increases all damage dealt by 15,000%'
+  },
+
+  // Crusader Sets
+  'Aegis of Valor': {
+    2: 'Attacking with Fist of the Heavens empowers you, allowing Heaven\'s Fury to deal 100% increased damage for 5 seconds. Stacks up to 3 times multiplicatively',
+    4: 'Hitting with Fist of the Heavens generates 5 Wrath and reduces damage taken by 1% for 5 seconds. Stacks up to 50 times',
+    6: 'Increase the damage of Fist of the Heavens and Heaven\'s Fury by 20,000%'
+  },
+  'Armor of Akkhan': {
+    2: 'Reduce the cost of all abilities by 50% while Akarat\'s Champion is active',
+    4: 'Reduce the cooldown of Akarat\'s Champion by 50%',
+    6: 'While Akarat\'s Champion is active, deal 2000% increased damage and take 50% less damage'
+  },
+  'Roland\'s Legacy': {
+    2: 'Every use of Shield Bash and Sweep Attack reduces the cooldowns of your Laws and Defensive Skills by 1 second',
+    4: 'Increase the damage of Shield Bash and Sweep Attack by 13,000%',
+    6: 'Every use of Shield Bash or Sweep Attack that hits an enemy grants 75% increased Attack Speed for 5 seconds. This effect stacks up to 5 times'
+  },
+
+  // Witch Doctor Sets
+  'Zunimassa\'s Haunt': {
+    2: 'Your Fetish Army lasts until they die and the cooldown of your Fetish Army is reduced by 80%',
+    4: 'You and your Fetishes take 3% reduced damage for every Fetish you have alive',
+    6: 'Enemies hit by your Mana spenders take 15,000% increased damage from your Pets for 8 seconds'
+  },
+  'Spirit of Arachyr': {
+    2: 'Summon a permanent Spider Queen who leaves behind webs that deal 4000% weapon damage over 5 seconds and Slows enemies. The Spider Queen is commanded to move to where you cast your Corpse Spiders',
+    4: 'Hex gains the effect of the Toad of Hugeness rune. After Toad of Hugeness pulls in an enemy, you deal 50% increased damage for 15 seconds',
+    6: 'The damage of your creature skills is increased by 9000%. Creature skills are Corpse Spiders, Plague of Toads, Firebats, Locust Swarm, Hex, and Piranhas'
+  }
+}
+
+/**
+ * Item acquisition data - how to farm each item
+ * Used for generating realistic upgrade recommendations with farming guidance
+ */
+export const ITEM_ACQUISITION: Record<string, Partial<ItemAcquisition>> = {
+  // ============================================
+  // CRAFTABLE SETS - Always quick to obtain
+  // ============================================
+  "Captain Crimson's Trimmings": {
+    slot: 'waist,legs,wrists',
+    methods: ['crafting'],
+    primaryMethod: 'crafting',
+    estimatedTime: 'quick',
+    bountyMaterialsRequired: true,
+    craftingRecipeSource: 'Bounty cache (any act)',
+    notes: 'Best 3pc set for CDR builds. Craft at Blacksmith after finding recipe.'
+  },
+  "Sage's Journey": {
+    slot: 'head,hands,feet',
+    methods: ['crafting'],
+    primaryMethod: 'crafting',
+    estimatedTime: 'quick',
+    bountyMaterialsRequired: true,
+    craftingRecipeSource: 'Bounty cache (any act)',
+    notes: 'Double Death\'s Breath drops. Great for farming builds.'
+  },
+  "Aughild's Authority": {
+    slot: 'shoulders,torso,wrists',
+    methods: ['crafting'],
+    primaryMethod: 'crafting',
+    estimatedTime: 'quick',
+    bountyMaterialsRequired: true,
+    craftingRecipeSource: 'Bounty cache (any act)',
+    notes: '30% elite damage bonus. Strong defensive option.'
+  },
+  "Born's Command": {
+    slot: 'shoulders,torso,mainHand',
+    methods: ['crafting'],
+    primaryMethod: 'crafting',
+    estimatedTime: 'quick',
+    bountyMaterialsRequired: true,
+    craftingRecipeSource: 'Bounty cache (any act)',
+    notes: 'CDR and XP bonus. Good for leveling and speed builds.'
+  },
+  "Cain's Destiny": {
+    slot: 'head,hands,legs',
+    methods: ['crafting'],
+    primaryMethod: 'crafting',
+    estimatedTime: 'quick',
+    bountyMaterialsRequired: true,
+    craftingRecipeSource: 'Bounty cache (any act)',
+    notes: 'XP and magic find bonus. Speed farming option.'
+  },
+
+  // ============================================
+  // NECROMANCER ITEMS
+  // ============================================
+  // Weapons
+  'Scythe of the Cycle': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Core for secondary skill builds. Upgrade rare scythes at cube.'
+  },
+  "Trag'Oul's Corroded Fang": {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Core for curse-based builds. Upgrade rare scythes.'
+  },
+  "Reilena's Shadowhook": {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Essence stacking builds. Best in slot for Bone Spear.'
+  },
+  "Nayr's Black Death": {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Poison skill builds. Stack different poison skills.'
+  },
+  'Bloodtide Blade': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Death Nova builds. Scales with enemy density.'
+  },
+  'Funerary Pick': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Siphon Blood builds. Generates corpses.'
+  },
+
+  // Off-hands
+  'Lost Time': {
+    slot: 'offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Cold builds. Slows enemies for Krysbin\'s synergy.'
+  },
+  'Iron Rose': {
+    slot: 'offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Blood Nova procs. Siphon Blood synergy.'
+  },
+  "Leger's Disdain": {
+    slot: 'offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    bloodShardCost: 75,
+    notes: 'Grim Scythe builds. Essence scaling.'
+  },
+
+  // Rings
+  "Krysbin's Sentence": {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Best damage ring for CC builds. Pairs with cold/stun effects.'
+  },
+  "Circle of Nailuj's Evol": {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Skeletal Mage builds. Double mage summons.'
+  },
+
+  // Amulets
+  'Haunted Visions': {
+    slot: 'neck',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 100,
+    notes: 'Simulacrum builds. Permanent uptime.'
+  },
+
+  // ============================================
+  // UNIVERSAL ITEMS (All Classes)
+  // ============================================
+  // Rings
+  'Focus': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Part of Focus & Restraint. Generator/spender damage bonus.'
+  },
+  'Restraint': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Part of Focus & Restraint. Generator/spender damage bonus.'
+  },
+  'The Compass Rose': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Part of Endless Walk set. Standing still = damage.'
+  },
+  'Convention of Elements': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Rotating 200% damage buff. Best cubed for most builds.'
+  },
+  'Unity': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: '50% damage split with follower (needs immortal relic). Solo pushing.'
+  },
+  'Ring of Royal Grandeur': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['bounty'],
+    primaryMethod: 'bounty',
+    estimatedTime: 'medium',
+    bountyMaterialsRequired: true,
+    dropLocations: ['Act 1 Bounty Cache'],
+    notes: 'Reduces set requirements by 1. Only from Act 1 bounties!'
+  },
+  'Avarice Band': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['bounty'],
+    primaryMethod: 'bounty',
+    estimatedTime: 'medium',
+    bountyMaterialsRequired: true,
+    dropLocations: ['Act 3 Bounty Cache'],
+    notes: 'Gold pickup radius. Speed farming. Only from Act 3 bounties!'
+  },
+  'Stone of Jordan': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 50,
+    notes: 'Elite damage. Good for push builds.'
+  },
+  'Oculus Ring': {
+    slot: 'leftFinger,rightFinger',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'world_drop',
+    estimatedTime: 'quick',
+    notes: 'Spawns damage zones. Put on follower!'
+  },
+
+  // Amulets
+  "The Traveler's Pledge": {
+    slot: 'neck',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 50,
+    bloodShardCost: 100,
+    notes: 'Part of Endless Walk set. Standing still = damage.'
+  },
+  'Hellfire Amulet': {
+    slot: 'neck',
+    methods: ['crafting'],
+    primaryMethod: 'crafting',
+    estimatedTime: 'long',
+    notes: 'Crafted from Uber boss materials. Grants 5th passive.'
+  },
+  'Squirt\'s Necklace': {
+    slot: 'neck',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'world_drop',
+    estimatedTime: 'quick',
+    notes: 'Stacking damage when not hit. Glass cannon builds.'
+  },
+  'The Flavor of Time': {
+    slot: 'neck',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'world_drop',
+    estimatedTime: 'quick',
+    notes: 'Double pylon duration. Put on follower!'
+  },
+
+  // Armor - Universal
+  'Aquila Cuirass': {
+    slot: 'torso',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'medium',
+    bloodShardCost: 25,
+    deathsBreathCost: 25,
+    notes: '50% DR above 90% resource. Best cubed for most builds.'
+  },
+  "Stone Gauntlets": {
+    slot: 'hands',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'medium',
+    bloodShardCost: 25,
+    deathsBreathCost: 25,
+    notes: 'Massive armor stacking. Needs Ingeom or Ice Climbers to offset slow.'
+  },
+  'Ice Climbers': {
+    slot: 'feet',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'medium',
+    bloodShardCost: 25,
+    deathsBreathCost: 25,
+    notes: 'Immune to freeze and slow. Counters Stone Gauntlets.'
+  },
+  'Nemesis Bracers': {
+    slot: 'wrists',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'quick',
+    bloodShardCost: 25,
+    notes: 'Spawns elites from shrines. Speed farming or follower.'
+  },
+  'Strongarm Bracers': {
+    slot: 'wrists',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'quick',
+    bloodShardCost: 25,
+    notes: 'Knockback = 30% more damage. Pairs with CC skills.'
+  },
+  "Goldwrap": {
+    slot: 'waist',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'quick',
+    bloodShardCost: 25,
+    notes: 'Gold = armor. Speed farming with Boon of the Hoarder.'
+  },
+  'The Witching Hour': {
+    slot: 'waist',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'long',
+    bloodShardCost: 25,
+    notes: 'Attack speed + crit damage. Rare drop, best belt for DPS.'
+  },
+  "Leoric's Crown": {
+    slot: 'head',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift', 'world_drop'],
+    primaryMethod: 'kadala',
+    estimatedTime: 'quick',
+    bloodShardCost: 25,
+    notes: 'Double gem effect in helm. CDR with diamond.'
+  },
+  "Pride's Fall": {
+    slot: 'head',
+    methods: ['bounty'],
+    primaryMethod: 'bounty',
+    estimatedTime: 'medium',
+    bountyMaterialsRequired: true,
+    dropLocations: ['Act 3 Bounty Cache'],
+    notes: '30% resource cost reduction. Only from Act 3 bounties!'
+  },
+
+  // ============================================
+  // LEGENDARY GEMS
+  // ============================================
+  'Bane of the Trapped': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'First gem to level. Auto-slows at rank 25.'
+  },
+  'Bane of the Stricken': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Boss killer. Essential for high GR pushing.'
+  },
+  'Bane of the Powerful': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Easy damage buff. Good for speed farming.'
+  },
+  'Zei\'s Stone of Vengeance': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Ranged builds. Damage increases with distance.'
+  },
+  'Enforcer': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Pet builds. +15% pet damage.'
+  },
+  'Esoteric Alteration': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Non-physical DR. Survival gem for pushing.'
+  },
+  'Molten Wildebeest\'s Gizzard': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Shield and life regen. Pairs with Squirt\'s Necklace.'
+  },
+  'Gogok of Swiftness': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'CDR and attack speed. Great for cooldown builds.'
+  },
+  'Pain Enhancer': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Attack speed from bleeds. AoE builds.'
+  },
+  'Boon of the Hoarder': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    dropLocations: ['Greed\'s Domain (Vault)'],
+    notes: 'Gold explosions. Speed farming with Goldwrap.'
+  },
+  'Gem of Efficacious Toxin': {
+    slot: 'gem',
+    methods: ['greater_rift'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'quick',
+    notes: 'Poison DoT + 10% damage taken debuff.'
+  },
+
+  // ============================================
+  // FOLLOWER ITEMS
+  // ============================================
+  'Enchanting Favor': {
+    slot: 'follower',
+    methods: ['world_drop', 'kadala'],
+    primaryMethod: 'world_drop',
+    estimatedTime: 'medium',
+    notes: 'Enchantress immortal relic. Required for Unity combo.'
+  },
+  'Skeleton Key': {
+    slot: 'follower',
+    methods: ['world_drop', 'kadala'],
+    primaryMethod: 'world_drop',
+    estimatedTime: 'medium',
+    notes: 'Scoundrel immortal relic. Required for Unity combo.'
+  },
+  'Smoking Thurible': {
+    slot: 'follower',
+    methods: ['world_drop', 'kadala'],
+    primaryMethod: 'world_drop',
+    estimatedTime: 'medium',
+    notes: 'Templar immortal relic. Required for Unity combo.'
+  },
+
+  // ============================================
+  // BARBARIAN ITEMS
+  // ============================================
+  'Bul-Kathos\'s Oath': {
+    slot: 'mainHand,offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Whirlwind set weapons. Fury generation.'
+  },
+  'The Furnace': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'long',
+    deathsBreathCost: 25,
+    notes: 'Elite damage. Often cubed.'
+  },
+  'Blade of the Tribes': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Leap/Earthquake builds.'
+  },
+
+  // ============================================
+  // DEMON HUNTER ITEMS
+  // ============================================
+  'Yang\'s Recurve': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Multishot build core. Resource cost reduction.'
+  },
+  'Dead Man\'s Legacy': {
+    slot: 'offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Multishot hits twice. Essential for UE build.'
+  },
+  'Fortress Ballista': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Shield on attack. Survivability option.'
+  },
+  'Dawn': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Vengeance CDR. 100% uptime with 37% CDR.'
+  },
+  'Lord Greenstone\'s Fan': {
+    slot: 'offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Fan of Knives damage. GoD build.'
+  },
+
+  // ============================================
+  // WIZARD ITEMS
+  // ============================================
+  'Deathwish': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Channeling damage. Vyr/Chantodo builds.'
+  },
+  'Etched Sigil': {
+    slot: 'offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Auto-cast spenders while channeling.'
+  },
+  'Chantodo\'s Resolve': {
+    slot: 'mainHand,offHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Archon build core. Wave of Destruction.'
+  },
+  'The Twisted Sword': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Energy Twister damage.'
+  },
+
+  // ============================================
+  // MONK ITEMS
+  // ============================================
+  'Kyoshiro\'s Blade': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Wave of Light damage.'
+  },
+  'Balance': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Tempest Rush damage.'
+  },
+  'Vengeful Wind': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Sweeping Wind stacks. Patterns of Justice.'
+  },
+  'Won Khim Lau': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Lightning pillar damage.'
+  },
+
+  // ============================================
+  // CRUSADER ITEMS
+  // ============================================
+  'Akkhan\'s Leniency': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Blessed Shield bounces.'
+  },
+  'Fate of the Fell': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Heaven\'s Fury builds.'
+  },
+  'Blade of Prophecy': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Condemn explosions.'
+  },
+
+  // ============================================
+  // WITCH DOCTOR ITEMS
+  // ============================================
+  'The Dagger of Darts': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Carnevil build core.'
+  },
+  'Sacred Harvester': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Soul Harvest stacks. Jade Harvester.'
+  },
+  'Voo\'s Juicer': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Spirit Barrage damage.'
+  },
+  'The Barber': {
+    slot: 'mainHand',
+    methods: ['cube_upgrade', 'kadala', 'greater_rift'],
+    primaryMethod: 'cube_upgrade',
+    estimatedTime: 'medium',
+    deathsBreathCost: 25,
+    notes: 'Spirit Barrage explosions.'
+  }
+}
+
+/**
+ * Get acquisition info for an item, with defaults for unknown items
+ */
+export function getItemAcquisition(itemName: string): Partial<ItemAcquisition> {
+  // Direct lookup
+  if (ITEM_ACQUISITION[itemName]) {
+    return ITEM_ACQUISITION[itemName]
+  }
+
+  // Try case-insensitive lookup
+  const lowerName = itemName.toLowerCase()
+  for (const [key, value] of Object.entries(ITEM_ACQUISITION)) {
+    if (key.toLowerCase() === lowerName) {
+      return value
+    }
+  }
+
+  // Default for unknown items
+  return {
+    methods: ['greater_rift', 'kadala', 'cube_upgrade'],
+    primaryMethod: 'greater_rift',
+    estimatedTime: 'medium',
+    notes: 'Check Maxroll.gg for specific farming advice.'
   }
 }
 
@@ -203,4 +1041,63 @@ export interface ValidationWarning {
   type: 'skill_type_error' | 'slot_conflict' | 'unknown_item'
   message: string
   severity: 'error' | 'warning'
+}
+
+/**
+ * Check if the hero has Ring of Royal Grandeur equipped or cubed
+ * RoRG reduces set requirements by 1 (5pc counts as 6pc)
+ */
+export function hasRingOfRoyalGrandeur(
+  items: Record<string, { name?: string }>,
+  cubePowers?: { jewelry?: string }
+): boolean {
+  // Check cubed jewelry
+  if (cubePowers?.jewelry?.toLowerCase().includes('ring of royal grandeur')) {
+    return true
+  }
+
+  // Check equipped rings
+  const ringSlots = ['leftFinger', 'rightFinger']
+  for (const slot of ringSlots) {
+    const item = items[slot]
+    if (item?.name?.toLowerCase().includes('ring of royal grandeur')) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Calculate effective pieces for a set considering Ring of Royal Grandeur
+ * RoRG only works if you have at least 2 pieces of a set
+ */
+export function getEffectivePieces(actualPieces: number, hasRoRG: boolean): number {
+  if (!hasRoRG || actualPieces < 2) {
+    return actualPieces
+  }
+  return actualPieces + 1
+}
+
+/**
+ * Get set bonus for a given set and piece count, considering RoRG
+ */
+export function getActiveSetBonuses(
+  setName: string,
+  actualPieces: number,
+  hasRoRG: boolean
+): { pieces: number; bonus: string; isRoRGEnabled: boolean }[] {
+  const bonuses = SET_BONUSES[setName]
+  if (!bonuses) return []
+
+  const effectivePieces = getEffectivePieces(actualPieces, hasRoRG)
+
+  return Object.entries(bonuses)
+    .filter(([pieces]) => Number(pieces) <= effectivePieces)
+    .map(([pieces, bonus]) => ({
+      pieces: Number(pieces),
+      bonus,
+      isRoRGEnabled: hasRoRG && Number(pieces) > actualPieces
+    }))
+    .sort((a, b) => a.pieces - b.pieces)
 }

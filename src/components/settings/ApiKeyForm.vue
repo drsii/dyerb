@@ -10,8 +10,10 @@
  */
 
 import { ref, computed } from 'vue'
-import { useSettingsStore } from '@/stores/settings'
+import { useSettingsStore, type RecommendationViewMode } from '@/stores/settings'
 import type { Region } from '@/types'
+import type { FarmingMethod } from '@/types/progression'
+import { FARMING_METHOD_INFO } from '@/types/progression'
 
 const settings = useSettingsStore()
 
@@ -24,6 +26,29 @@ const formData = ref({
   proxyUrl: settings.proxyUrl,
   claudeApiKey: settings.claudeApiKey
 })
+
+// External data preferences (separate reactive state for immediate UI updates)
+const useMaxrollData = ref(settings.useMaxrollData)
+const defaultViewMode = ref<RecommendationViewMode>(settings.defaultViewMode)
+const preferredFarmingMethods = ref<FarmingMethod[]>([...settings.preferredFarmingMethods])
+
+// All available farming methods for checkboxes
+const allFarmingMethods: FarmingMethod[] = [
+  'rift', 'greater_rift', 'bounty', 'kadala',
+  'cube_upgrade', 'cube_reforge', 'crafting', 'world_drop'
+]
+
+function toggleFarmingMethod(method: FarmingMethod) {
+  const index = preferredFarmingMethods.value.indexOf(method)
+  if (index === -1) {
+    preferredFarmingMethods.value.push(method)
+  } else {
+    // Ensure at least one method is selected
+    if (preferredFarmingMethods.value.length > 1) {
+      preferredFarmingMethods.value.splice(index, 1)
+    }
+  }
+}
 
 const showSecrets = ref(false)
 const showClaudeKey = ref(false)
@@ -58,7 +83,11 @@ async function handleSave() {
       region: formData.value.region,
       battletag: formData.value.battletag.trim(),
       proxyUrl: formData.value.proxyUrl.trim(),
-      claudeApiKey: formData.value.claudeApiKey.trim()
+      claudeApiKey: formData.value.claudeApiKey.trim(),
+      // External data preferences
+      useMaxrollData: useMaxrollData.value,
+      defaultViewMode: defaultViewMode.value,
+      preferredFarmingMethods: preferredFarmingMethods.value
     })
 
     saveMessage.value = 'Settings saved successfully!'
@@ -86,6 +115,10 @@ function handleClear() {
       proxyUrl: settings.proxyUrl,
       claudeApiKey: ''
     }
+    // Reset external data preferences
+    useMaxrollData.value = true
+    defaultViewMode.value = 'categorized'
+    preferredFarmingMethods.value = [...allFarmingMethods]
   }
 }
 
@@ -100,6 +133,10 @@ function handleDestroyAllData() {
       proxyUrl: settings.proxyUrl,
       claudeApiKey: ''
     }
+    // Reset external data preferences
+    useMaxrollData.value = true
+    defaultViewMode.value = 'categorized'
+    preferredFarmingMethods.value = [...allFarmingMethods]
     saveMessage.value = 'All data destroyed successfully'
     setTimeout(() => {
       saveMessage.value = ''
@@ -219,6 +256,59 @@ function handleDestroyAllData() {
           Anthropic Console
         </a>
         - enables AI build recommendations
+      </p>
+    </div>
+
+    <!-- External Data Section -->
+    <div class="section-divider">
+      <h3>External Data & Progression</h3>
+      <p class="section-description">
+        Configure meta build data and farming preferences
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          v-model="useMaxrollData"
+        />
+        <span>Use Maxroll.gg meta build data</span>
+      </label>
+      <p class="form-help">
+        Fetches current tier lists and build guides to provide context for AI recommendations
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label for="defaultViewMode">Default Upgrade View</label>
+      <select id="defaultViewMode" v-model="defaultViewMode">
+        <option value="categorized">By Time Investment</option>
+        <option value="progression">Step-by-Step Progression</option>
+      </select>
+      <p class="form-help">
+        How upgrade recommendations are displayed by default
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label>Preferred Farming Methods</label>
+      <div class="checkbox-grid">
+        <label
+          v-for="method in allFarmingMethods"
+          :key="method"
+          class="checkbox-label"
+        >
+          <input
+            type="checkbox"
+            :checked="preferredFarmingMethods.includes(method)"
+            @change="toggleFarmingMethod(method)"
+          />
+          <span>{{ FARMING_METHOD_INFO[method].label }}</span>
+        </label>
+      </div>
+      <p class="form-help">
+        AI will prioritize these methods when suggesting how to acquire items
       </p>
     </div>
 
@@ -377,5 +467,39 @@ function handleDestroyAllData() {
 .btn-danger:hover {
   background: #a93226;
   border-color: #a93226;
+}
+
+/* Checkbox styles */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-gold);
+}
+
+.checkbox-label span {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -3,7 +3,7 @@
  * @description Settings store for API credentials and app configuration
  *
  * @author drsii
- * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20250514)
+ * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20251101)
  * @license MIT
  * @copyright (c) 2025 drsii. All rights reserved.
  */
@@ -11,8 +11,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Region } from '@/types'
+import type { FarmingMethod } from '@/types/progression'
 
 const STORAGE_KEY = 'dyerb-settings'
+
+/** View mode for upgrade recommendations */
+export type RecommendationViewMode = 'categorized' | 'progression'
 
 interface StoredSettings {
   clientId: string
@@ -21,7 +25,19 @@ interface StoredSettings {
   battletag: string
   proxyUrl: string
   claudeApiKey: string
+  // External data preferences
+  useMaxrollData: boolean
+  maxrollCacheEnabled: boolean
+  // Farming preferences
+  preferredFarmingMethods: FarmingMethod[]
+  // UI preferences
+  defaultViewMode: RecommendationViewMode
 }
+
+/** Default farming methods */
+const DEFAULT_FARMING_METHODS: FarmingMethod[] = [
+  'rift', 'greater_rift', 'kadala', 'cube_upgrade', 'bounty', 'crafting'
+]
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
@@ -32,6 +48,16 @@ export const useSettingsStore = defineStore('settings', () => {
   const proxyUrl = ref('https://d3-proxy.YOUR-SUBDOMAIN.workers.dev') // Will be updated
   const claudeApiKey = ref('')
   const sidebarOpen = ref(true)
+
+  // External data preferences
+  const useMaxrollData = ref(true)
+  const maxrollCacheEnabled = ref(true)
+
+  // Farming preferences
+  const preferredFarmingMethods = ref<FarmingMethod[]>([...DEFAULT_FARMING_METHODS])
+
+  // UI preferences
+  const defaultViewMode = ref<RecommendationViewMode>('categorized')
 
   // Computed
   const isConfigured = computed(() => {
@@ -58,13 +84,20 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const data: StoredSettings = JSON.parse(stored)
+        const data: Partial<StoredSettings> = JSON.parse(stored)
         clientId.value = data.clientId || ''
         clientSecret.value = data.clientSecret || ''
         region.value = data.region || 'us'
         battletag.value = data.battletag || ''
         proxyUrl.value = data.proxyUrl || proxyUrl.value
         claudeApiKey.value = data.claudeApiKey || ''
+        // External data preferences
+        useMaxrollData.value = data.useMaxrollData ?? true
+        maxrollCacheEnabled.value = data.maxrollCacheEnabled ?? true
+        // Farming preferences
+        preferredFarmingMethods.value = data.preferredFarmingMethods ?? [...DEFAULT_FARMING_METHODS]
+        // UI preferences
+        defaultViewMode.value = data.defaultViewMode ?? 'categorized'
       }
     } catch (e) {
       console.error('Failed to load settings from storage:', e)
@@ -79,7 +112,11 @@ export const useSettingsStore = defineStore('settings', () => {
         region: region.value,
         battletag: battletag.value,
         proxyUrl: proxyUrl.value,
-        claudeApiKey: claudeApiKey.value
+        claudeApiKey: claudeApiKey.value,
+        useMaxrollData: useMaxrollData.value,
+        maxrollCacheEnabled: maxrollCacheEnabled.value,
+        preferredFarmingMethods: preferredFarmingMethods.value,
+        defaultViewMode: defaultViewMode.value
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -94,6 +131,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (settings.battletag !== undefined) battletag.value = settings.battletag
     if (settings.proxyUrl !== undefined) proxyUrl.value = settings.proxyUrl
     if (settings.claudeApiKey !== undefined) claudeApiKey.value = settings.claudeApiKey
+    if (settings.useMaxrollData !== undefined) useMaxrollData.value = settings.useMaxrollData
+    if (settings.maxrollCacheEnabled !== undefined) maxrollCacheEnabled.value = settings.maxrollCacheEnabled
+    if (settings.preferredFarmingMethods !== undefined) preferredFarmingMethods.value = settings.preferredFarmingMethods
+    if (settings.defaultViewMode !== undefined) defaultViewMode.value = settings.defaultViewMode
     saveToStorage()
   }
 
@@ -103,6 +144,10 @@ export const useSettingsStore = defineStore('settings', () => {
     region.value = 'us'
     battletag.value = ''
     claudeApiKey.value = ''
+    useMaxrollData.value = true
+    maxrollCacheEnabled.value = true
+    preferredFarmingMethods.value = [...DEFAULT_FARMING_METHODS]
+    defaultViewMode.value = 'categorized'
     localStorage.removeItem(STORAGE_KEY)
   }
 
@@ -163,6 +208,13 @@ export const useSettingsStore = defineStore('settings', () => {
     proxyUrl,
     claudeApiKey,
     sidebarOpen,
+    // External data preferences
+    useMaxrollData,
+    maxrollCacheEnabled,
+    // Farming preferences
+    preferredFarmingMethods,
+    // UI preferences
+    defaultViewMode,
 
     // Computed
     isConfigured,

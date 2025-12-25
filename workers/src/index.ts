@@ -3,7 +3,7 @@
  * @description Cloudflare Worker OAuth proxy for Battle.net API
  *
  * @author drsii
- * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20250514)
+ * @ai-assisted Claude Opus 4.5 (claude-opus-4-5-20251101)
  * @license MIT
  * @copyright (c) 2025 drsii. All rights reserved.
  */
@@ -16,6 +16,10 @@ interface TokenRequest {
 interface ApiProxyRequest {
   token: string
   region: string
+  endpoint: string
+}
+
+interface MaxrollProxyRequest {
   endpoint: string
 }
 
@@ -51,6 +55,11 @@ export default {
       // API proxy endpoint
       if (url.pathname === '/api/proxy' && request.method === 'POST') {
         return await handleApiProxy(request)
+      }
+
+      // Maxroll proxy endpoint
+      if (url.pathname === '/api/maxroll' && request.method === 'POST') {
+        return await handleMaxrollProxy(request)
       }
 
       // Health check
@@ -145,6 +154,80 @@ async function handleApiProxy(request: Request): Promise<Response> {
   }
 
   return jsonResponse(data)
+}
+
+/**
+ * Proxy requests to Maxroll.gg to avoid CORS issues
+ * Returns HTML content that can be parsed on the client
+ */
+async function handleMaxrollProxy(request: Request): Promise<Response> {
+  const body: MaxrollProxyRequest = await request.json()
+
+  if (!body.endpoint) {
+    return jsonResponse({ error: 'Missing endpoint' }, 400)
+  }
+
+  // Validate endpoint is a valid Maxroll path
+  const allowedPaths = [
+    '/d3/tierlists/',
+    '/d3/build-guides/',
+    '/d3/category/build-guides/',
+    '/d3/resources/'
+  ]
+
+  const isAllowed = allowedPaths.some(path => body.endpoint.startsWith(path))
+  if (!isAllowed) {
+    return jsonResponse({ error: 'Invalid endpoint path' }, 400)
+  }
+
+  const maxrollUrl = `https://maxroll.gg${body.endpoint}`
+
+  try {
+    const response = await fetch(maxrollUrl, {
+      headers: {
+        'User-Agent': 'D3GearAnalyzer/1.0 (Build recommendation tool)',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+      }
+    })
+
+    if (!response.ok) {
+      return jsonResponse(
+        {
+          error: 'Maxroll request failed',
+          status: response.status
+        },
+        response.status
+      )
+    }
+
+    const html = await response.text()
+
+    // Return HTML content for client-side parsing
+    return new Response(
+      JSON.stringify({
+        success: true,
+        html,
+        url: maxrollUrl,
+        fetchedAt: new Date().toISOString()
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...CORS_HEADERS
+        }
+      }
+    )
+  } catch (error) {
+    return jsonResponse(
+      {
+        error: 'Failed to fetch from Maxroll',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      500
+    )
+  }
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
